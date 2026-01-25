@@ -42,10 +42,10 @@ public class Otp extends BaseEntity {
     @Column(name = "expires_at", nullable = false, updatable = false)
     private Instant expiresAt;
 
-    @Column(name = "used_at", updatable = false)
+    @Column(name = "used_at")
     private Instant usedAt;
 
-    @Column(name = "revoked_at", updatable = false)
+    @Column(name = "revoked_at")
     private Instant revokedAt;
 
     // Security controls
