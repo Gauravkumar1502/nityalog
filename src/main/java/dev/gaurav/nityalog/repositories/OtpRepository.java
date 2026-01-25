@@ -1,6 +1,7 @@
 package dev.gaurav.nityalog.repositories;
 
 import dev.gaurav.nityalog.entities.Otp;
+import dev.gaurav.nityalog.entities.User;
 import dev.gaurav.nityalog.enums.OtpType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,7 +17,11 @@ public interface OtpRepository extends JpaRepository<Otp, UUID> {
 
     long countByTargetAndOtpTypeAndCreatedAtAfter(String target, OtpType otpType, Instant from);
 
+    long countByUserAndOtpTypeAndCreatedAtAfter(User user, OtpType otpType, Instant from);
+
     Optional<Otp> findTopByTargetAndOtpTypeOrderByCreatedAtDesc(String target, OtpType otpType);
+
+    Optional<Otp> findTopByUserAndOtpTypeOrderByCreatedAtDesc(User user, OtpType otpType);
 
     Optional<Otp> findTopByTargetAndOtpTypeAndUsedAtIsNotNullAndRevokedAtIsNullOrderByUsedAtDesc(String target, OtpType otpType);
 
@@ -31,12 +36,31 @@ public interface OtpRepository extends JpaRepository<Otp, UUID> {
     Optional<Instant> findLastSuccessfulUsedAt(@Param("target") String target, @Param("otpType") OtpType otpType);
 
     @Query("""
-        SELECT SUM(o.attemptCount)
+        SELECT MAX(o.usedAt)
+        FROM Otp o
+        WHERE o.user = :user
+          AND o.otpType = :otpType
+          AND o.usedAt IS NOT NULL
+          AND o.revokedAt IS NULL
+    """)
+    Optional<Instant> findLastSuccessfulUsedAt(@Param("user") User user, @Param("otpType") OtpType otpType);
+
+    @Query("""
+        SELECT COALESCE(SUM(o.attemptCount), 0)
         FROM Otp o
         WHERE o.target = :target
           AND o.otpType = :otpType
-          AND o.createdAt >= :fromTime
+          AND o.createdAt >= :from
     """)
-    Long countFailedAttempts(@Param("target") String target, @Param("otpType") OtpType otpType, @Param("fromTime") Instant fromTime);
+    long countFailedAttempts(@Param("target") String target, @Param("otpType") OtpType otpType, @Param("fromTime") Instant from);
+
+    @Query("""
+        SELECT COALESCE(SUM(o.attemptCount), 0)
+        FROM Otp o
+        WHERE o.user = :user
+          AND o.otpType = :otpType
+          AND o.createdAt >= :from
+    """)
+    long countFailedAttempts(@Param("user") User user, @Param("otpType") OtpType otpType, @Param("from") Instant from);
 
 }

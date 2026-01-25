@@ -1,8 +1,12 @@
 package dev.gaurav.nityalog.services;
 
+import dev.gaurav.nityalog.dtos.OtpLimitState;
 import dev.gaurav.nityalog.entities.Otp;
+import dev.gaurav.nityalog.entities.User;
 import dev.gaurav.nityalog.enums.OtpType;
+import dev.gaurav.nityalog.exceptions.TooManyRequestsException;
 import dev.gaurav.nityalog.repositories.OtpRepository;
+import dev.gaurav.nityalog.utils.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -52,4 +56,86 @@ public class OtpService {
         return otpRepository.findLastSuccessfulUsedAt(target, otpType);
     }
 
+    public long getFailedAttemptsCount(String target, OtpType otpType, Duration from) {
+        return otpRepository.countFailedAttempts(target, otpType, Instant.now().minus(from));
+    }
+
+    public OtpLimitState validateOtpResend(String target, OtpType otpType) {
+        return validateOtpResend(target, null, otpType);
+    }
+
+    public OtpLimitState validateOtpResend(User user, OtpType otpType) {
+        return validateOtpResend(null, user, otpType);
+    }
+
+    private OtpLimitState validateOtpResend(String target, User user, OtpType otpType) {
+        ValidationUtils.assertExactlyOneNotNull(target, user, "Either target or user must be provided, but not both.");
+
+        Instant windowStart = Instant.now().minus(otpType.getRateLimitWindow());
+        Optional<Instant> lastSuccess = (user != null)
+            ? otpRepository.findLastSuccessfulUsedAt(user, otpType)
+            : otpRepository.findLastSuccessfulUsedAt(target, otpType);
+
+        if (lastSuccess.isPresent() && lastSuccess.get().isAfter(windowStart)) {
+            windowStart = lastSuccess.get();
+        }
+
+        long used = (user != null)
+            ? otpRepository.countByUserAndOtpTypeAndCreatedAtAfter(user, otpType, windowStart)
+            : otpRepository.countByTargetAndOtpTypeAndCreatedAtAfter(target, otpType, windowStart);
+
+        return buildLimitState(
+                used,
+                otpType.getMaxRequestsPerWindow(),
+                windowStart, otpType.getRateLimitWindow(),
+            "OTP resend limit reached."
+        );
+    }
+
+    public OtpLimitState validateFailedAttempts(String target, OtpType otpType) {
+        return validateFailedAttempts(target, null, otpType);
+    }
+
+    public OtpLimitState validateFailedAttempts(User user, OtpType otpType) {
+        return validateFailedAttempts(null, user, otpType);
+    }
+
+    private OtpLimitState validateFailedAttempts(String target, User user, OtpType otpType) {
+        ValidationUtils.assertExactlyOneNotNull(target, user, "Either target or user must be provided, but not both.");
+
+        Instant windowStart = Instant.now().minus(otpType.getVerificationAttemptWindow());
+        Optional<Instant> lastSuccess = (user != null)
+            ? otpRepository.findLastSuccessfulUsedAt(user, otpType)
+            : otpRepository.findLastSuccessfulUsedAt(target, otpType);
+
+        if (lastSuccess.isPresent() && lastSuccess.get().isAfter(windowStart)) {
+            windowStart = lastSuccess.get();
+        }
+
+        long failed = (user != null)
+            ? otpRepository.countFailedAttempts(user, otpType, windowStart)
+            : otpRepository.countFailedAttempts(target, otpType, windowStart);
+
+        return buildLimitState(
+                failed,
+                otpType.getMaxVerificationAttempts(),
+                windowStart,
+                otpType.getVerificationAttemptWindow(),
+                "OTP verification attempt limit reached."
+        );
+    }
+
+    private OtpLimitState buildLimitState(long used, long max, Instant windowStart, Duration window) {
+        return buildLimitState(used, max, windowStart, window, null);
+    }
+
+    private OtpLimitState buildLimitState(long used, long max, Instant windowStart, Duration window, String message) {
+        long left = Math.max(max - used, 0);
+        Instant resetAt = windowStart.plus(window);
+        String finalMessage = message == null ? "Limit reached." : message;
+        if (left == 0) {
+            throw new TooManyRequestsException(finalMessage + " Try again after " + resetAt);
+        }
+        return new OtpLimitState(left, resetAt);
+    }
 }
