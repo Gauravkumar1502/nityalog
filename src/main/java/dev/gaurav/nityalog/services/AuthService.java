@@ -123,7 +123,7 @@ public class AuthService {
                 .build();
     }
 
-    public void verifyOtp(VerifyOtpRequest request) {
+    public OtpVerificationResponse verifyOtp(VerifyOtpRequest request) {
         String identifier = request.identifier();
         String otpCode = request.otp();
         OtpType otpType = request.otpType();
@@ -140,6 +140,7 @@ public class AuthService {
             }
         }
 
-        otpService.verifyOtp(otpCode, target, user, otpType);
+        return otpService.verifyOtp(otpCode, target, user, otpType);
     }
+
 }
