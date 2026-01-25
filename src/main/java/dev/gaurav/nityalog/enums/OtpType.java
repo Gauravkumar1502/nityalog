@@ -8,16 +8,47 @@ import java.time.Duration;
 @Getter
 @RequiredArgsConstructor
 public enum OtpType {
-    LOGIN(3, Duration.ofMinutes(5), 5, Duration.ofMinutes(30)),
-    EMAIL_VERIFY(5, Duration.ofMinutes(10), 5, Duration.ofHours(1)),
-    FORGOT_PASSWORD(3, Duration.ofMinutes(30), 5, Duration.ofMinutes(30)),
-    PHONE_VERIFY(5, Duration.ofMinutes(10), 5, Duration.ofHours(1)),
-    MFA(5, Duration.ofMinutes(5), 5, Duration.ofMinutes(30));
+    LOGIN(5,
+            Duration.ofMinutes(10),
+            5,
+            Duration.ofMinutes(15),
+            Duration.ofMinutes(5)
+    ),
+
+    EMAIL_VERIFY(5,
+            Duration.ofMinutes(15),
+            5,
+            Duration.ofHours(1),
+            Duration.ofMinutes(10)
+    ),
+
+    FORGOT_PASSWORD(3,
+            Duration.ofMinutes(30),
+            3,
+            Duration.ofMinutes(30),
+            Duration.ofMinutes(10)
+    ),
+
+    PHONE_VERIFY(5,
+            Duration.ofMinutes(15),
+            3,
+            Duration.ofMinutes(30),
+            Duration.ofMinutes(5)
+    ),
+
+    MFA(3,
+            Duration.ofMinutes(10),
+            3,
+            Duration.ofMinutes(15),
+            Duration.ofMinutes(3)
+    );
 
     private final int maxVerificationAttempts;
-    private final Duration expiresIn;
+    private final Duration verificationAttemptWindow;
 
     private final int maxRequestsPerWindow;
     private final Duration rateLimitWindow;
+
+    private final Duration expiresIn;
 }
 
