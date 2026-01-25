@@ -78,7 +78,6 @@ public class Otp extends BaseEntity {
     }
 
     @PrePersist
-    @PreUpdate
     private void hashOtp() {
         if (this.otp != null && !this.otp.isBlank()) {
             this.otp = HashUtils.hash(this.otp);
