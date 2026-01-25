@@ -52,7 +52,7 @@ public interface OtpRepository extends JpaRepository<Otp, UUID> {
           AND o.otpType = :otpType
           AND o.createdAt >= :from
     """)
-    long countFailedAttempts(@Param("target") String target, @Param("otpType") OtpType otpType, @Param("fromTime") Instant from);
+    long countFailedAttempts(@Param("target") String target, @Param("otpType") OtpType otpType, @Param("from") Instant from);
 
     @Query("""
         SELECT COALESCE(SUM(o.attemptCount), 0)
