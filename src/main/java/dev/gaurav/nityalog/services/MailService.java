@@ -1,6 +1,6 @@
 package dev.gaurav.nityalog.services;
 
-import dev.gaurav.nityalog.entities.Otp;
+import dev.gaurav.nityalog.enums.OtpType;
 import gg.jte.TemplateEngine;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -42,7 +42,10 @@ public class MailService {
             throw new MailSendException("Message format error while sending mail to " + to, e);
         }
     }
-
-    public void sendOtpEmail(@NotBlank @Email String email, Otp otp) {
+    
+    public void sendOtpEmail(@NotBlank @Email String email, String rawOtp, OtpType otpType) {
+//         String subject = "Your OTP Code";
+//         String body = "Your OTP code is: " + rawOtp; // Replace with template rendering
+//         send(email, subject, body, false);
     }
 }
