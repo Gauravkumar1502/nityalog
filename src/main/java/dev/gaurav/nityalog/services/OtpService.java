@@ -52,6 +52,10 @@ public class OtpService {
         return otpRepository.findTopByTargetAndOtpTypeOrderByCreatedAtDesc(target, otpType);
     }
 
+    public Optional<Otp> getLatestOtp(User user, OtpType otpType) {
+        return otpRepository.findTopByUserAndOtpTypeOrderByCreatedAtDesc(user, otpType);
+    }
+
     public Optional<Instant> getLastSuccessfulOtpUseTime(String target, OtpType otpType) {
         return otpRepository.findLastSuccessfulUsedAt(target, otpType);
     }
@@ -68,8 +72,8 @@ public class OtpService {
         return validateOtpResend(null, user, otpType);
     }
 
-    private OtpLimitState validateOtpResend(String target, User user, OtpType otpType) {
-        ValidationUtils.assertExactlyOneNotNull(target, user, "Either target or user must be provided, but not both.");
+    public OtpLimitState validateOtpResend(String target, User user, OtpType otpType) {
+        ValidationUtils.assertExactlyOneNotNull(target, user, "Either identifier or user must be provided, but not both.");
 
         Instant windowStart = Instant.now().minus(otpType.getRateLimitWindow());
         Optional<Instant> lastSuccess = (user != null)
@@ -100,8 +104,8 @@ public class OtpService {
         return validateFailedAttempts(null, user, otpType);
     }
 
-    private OtpLimitState validateFailedAttempts(String target, User user, OtpType otpType) {
-        ValidationUtils.assertExactlyOneNotNull(target, user, "Either target or user must be provided, but not both.");
+    public OtpLimitState validateFailedAttempts(String target, User user, OtpType otpType) {
+        ValidationUtils.assertExactlyOneNotNull(target, user, "Either identifier or user must be provided, but not both.");
 
         Instant windowStart = Instant.now().minus(otpType.getVerificationAttemptWindow());
         Optional<Instant> lastSuccess = (user != null)
