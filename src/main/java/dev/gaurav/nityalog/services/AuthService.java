@@ -1,9 +1,6 @@
 package dev.gaurav.nityalog.services;
 
-import dev.gaurav.nityalog.dtos.OtpDispatchResponse;
-import dev.gaurav.nityalog.dtos.OtpLimitState;
-import dev.gaurav.nityalog.dtos.RegisterRequest;
-import dev.gaurav.nityalog.dtos.ResendOtpRequest;
+import dev.gaurav.nityalog.dtos.*;
 import dev.gaurav.nityalog.entities.Otp;
 import dev.gaurav.nityalog.entities.User;
 import dev.gaurav.nityalog.enums.OtpType;
@@ -41,7 +38,7 @@ public class AuthService {
         OtpType otpType = request.otpType();
 
         return switch (otpType) {
-            case LOGIN, FORGOT_PASSWORD, MFA -> {
+            case LOGIN, RESET_PASSWORD, MFA -> {
 //              TODO:: validate that identifier is a username or email
                 User user = userService.loadUserByUsername(identifier);
                 yield sendOtp(null, user, otpType);
@@ -76,7 +73,7 @@ public class AuthService {
                     throw new EmailAlreadyExistsException("Email is already registered.");
                 }
             }
-            case LOGIN, FORGOT_PASSWORD, MFA -> {
+            case LOGIN, RESET_PASSWORD, MFA -> {
                 if (user == null) {
                     throw new UserNotFoundException("User must be provided for this OTP type.");
                 }
@@ -126,4 +123,23 @@ public class AuthService {
                 .build();
     }
 
+    public void verifyOtp(VerifyOtpRequest request) {
+        String identifier = request.identifier();
+        String otpCode = request.otp();
+        OtpType otpType = request.otpType();
+
+        User user = null;
+        String target = null;
+
+        switch (otpType) {
+            case EMAIL_VERIFY, PHONE_VERIFY -> {
+                target = identifier;
+            }
+            case LOGIN, RESET_PASSWORD, MFA -> {
+                user = userService.loadUserByUsername(identifier);
+            }
+        }
+
+        otpService.verifyOtp(otpCode, target, user, otpType);
+    }
 }

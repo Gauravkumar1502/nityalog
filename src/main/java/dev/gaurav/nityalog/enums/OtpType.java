@@ -22,7 +22,7 @@ public enum OtpType {
             Duration.ofMinutes(10)
     ),
 
-    FORGOT_PASSWORD(3,
+    RESET_PASSWORD(3,
             Duration.ofMinutes(30),
             3,
             Duration.ofMinutes(30),
