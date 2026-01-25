@@ -70,6 +70,29 @@ public class OtpService {
         return otpRepository.countFailedAttempts(target, otpType, Instant.now().minus(from));
     }
 
+    public OtpLimitState getOtpResendState(User user, OtpType otpType) {
+        return getOtpResendState(null, user, otpType);
+    }
+
+    public OtpLimitState getOtpResendState(String target, OtpType otpType) {
+        return getOtpResendState(target, null, otpType);
+    }
+
+    public OtpLimitState getOtpResendState(String target, User user, OtpType otpType) {
+        ValidationUtils.assertExactlyOneNotNull(target, user, "Either identifier or user must be provided, but not both.");
+        Instant windowStart = calculateWindowStart(target, user, otpType, otpType.getRateLimitWindow());
+        long used = (user != null)
+                ? otpRepository.countByUserAndOtpTypeAndCreatedAtAfter(user, otpType, windowStart)
+                : otpRepository.countByTargetAndOtpTypeAndCreatedAtAfter(target, otpType, windowStart);
+
+        return buildLimitState(
+                used,
+                otpType.getMaxRequestsPerWindow(),
+                windowStart,
+                otpType.getRateLimitWindow()
+        );
+    }
+
     public OtpLimitState validateOtpResend(String target, OtpType otpType) {
         return validateOtpResend(target, null, otpType);
     }
@@ -79,26 +102,33 @@ public class OtpService {
     }
 
     public OtpLimitState validateOtpResend(String target, User user, OtpType otpType) {
+        OtpLimitState resendState = getOtpResendState(target, user, otpType);
+        enforceLimitState(resendState, "Too many OTP resends in the last window.");
+        return resendState;
+    }
+
+    public OtpLimitState getFailedAttemptsState(User user, OtpType otpType) {
+        return getFailedAttemptsState(null, user, otpType);
+    }
+
+    public OtpLimitState getFailedAttemptsState(String target, OtpType otpType) {
+        return getFailedAttemptsState(target, null, otpType);
+    }
+
+    public OtpLimitState getFailedAttemptsState(String target, User user, OtpType otpType) {
         ValidationUtils.assertExactlyOneNotNull(target, user, "Either identifier or user must be provided, but not both.");
 
-        Instant windowStart = Instant.now().minus(otpType.getRateLimitWindow());
-        Optional<Instant> lastSuccess = (user != null)
-            ? otpRepository.findLastSuccessfulUsedAt(user, otpType)
-            : otpRepository.findLastSuccessfulUsedAt(target, otpType);
+        Instant windowStart = calculateWindowStart(target, user, otpType, otpType.getVerificationAttemptWindow());
 
-        if (lastSuccess.isPresent() && lastSuccess.get().isAfter(windowStart)) {
-            windowStart = lastSuccess.get();
-        }
-
-        long used = (user != null)
-            ? otpRepository.countByUserAndOtpTypeAndCreatedAtAfter(user, otpType, windowStart)
-            : otpRepository.countByTargetAndOtpTypeAndCreatedAtAfter(target, otpType, windowStart);
+        long failed = (user != null)
+                ? otpRepository.countFailedAttempts(user, otpType, windowStart)
+                : otpRepository.countFailedAttempts(target, otpType, windowStart);
 
         return buildLimitState(
-                used,
-                otpType.getMaxRequestsPerWindow(),
-                windowStart, otpType.getRateLimitWindow(),
-            "OTP resend limit reached."
+                failed,
+                otpType.getMaxVerificationAttempts(),
+                windowStart,
+                otpType.getVerificationAttemptWindow()
         );
     }
 
@@ -111,54 +141,47 @@ public class OtpService {
     }
 
     public OtpLimitState validateFailedAttempts(String target, User user, OtpType otpType) {
-        ValidationUtils.assertExactlyOneNotNull(target, user, "Either identifier or user must be provided, but not both.");
+        OtpLimitState failedAttemptState = getFailedAttemptsState(target, user, otpType);
+        enforceLimitState(failedAttemptState, "OTP verification attempt limit reached.");
+        return failedAttemptState;
+    }
 
-        Instant windowStart = Instant.now().minus(otpType.getVerificationAttemptWindow());
+    private OtpLimitState buildLimitState(long used, long max, Instant windowStart, Duration window) {
+        long left = Math.max(max - used, 0);
+        Instant resetAt = windowStart.plus(window);
+        return new OtpLimitState(left, resetAt);
+    }
+
+    private void enforceLimitState(OtpLimitState state, String message) {
+        if (state.attemptsLeft() == 0) {
+            throw new TooManyRequestsException(message);
+        }
+    }
+
+    private Instant calculateWindowStart(String target, User user, OtpType otpType, Duration window) {
+        Instant windowStart = Instant.now().minus(window);
         Optional<Instant> lastSuccess = (user != null)
-            ? otpRepository.findLastSuccessfulUsedAt(user, otpType)
-            : otpRepository.findLastSuccessfulUsedAt(target, otpType);
+                ? otpRepository.findLastSuccessfulUsedAt(user, otpType)
+                : otpRepository.findLastSuccessfulUsedAt(target, otpType);
 
         if (lastSuccess.isPresent() && lastSuccess.get().isAfter(windowStart)) {
             windowStart = lastSuccess.get();
         }
 
-        long failed = (user != null)
-            ? otpRepository.countFailedAttempts(user, otpType, windowStart)
-            : otpRepository.countFailedAttempts(target, otpType, windowStart);
-
-        return buildLimitState(
-                failed,
-                otpType.getMaxVerificationAttempts(),
-                windowStart,
-                otpType.getVerificationAttemptWindow(),
-                "OTP verification attempt limit reached."
-        );
-    }
-
-    private OtpLimitState buildLimitState(long used, long max, Instant windowStart, Duration window) {
-        return buildLimitState(used, max, windowStart, window, null);
-    }
-
-    private OtpLimitState buildLimitState(long used, long max, Instant windowStart, Duration window, String message) {
-        long left = Math.max(max - used, 0);
-        Instant resetAt = windowStart.plus(window);
-        String finalMessage = message == null ? "Limit reached." : message;
-        if (left == 0) {
-            throw new TooManyRequestsException(finalMessage + " Try again after " + resetAt);
-        }
-        return new OtpLimitState(left, resetAt);
+        return windowStart;
     }
 
     public OtpVerificationResponse verifyOtp(String otpCode, String target, User user, OtpType otpType) {
         ValidationUtils.assertExactlyOneNotNull(target, user, "Either identifier or user must be provided, but not both.");
 
-        long attemptLeft = validateFailedAttempts(target, user, otpType).attemptsLeft();
-        if (attemptLeft == 0) {
+        OtpLimitState failAttemptState = getFailedAttemptsState(target, user, otpType);
+
+        if (failAttemptState.attemptsLeft() == 0) {
             throw new LimitExceededException("Maximum OTP verification attempts exceeded.");
         }
         Optional<Otp> otpOptional = (user != null)
-            ? otpRepository.findTopByUserAndOtpTypeOrderByCreatedAtDesc(user, otpType)
-            : otpRepository.findTopByTargetAndOtpTypeOrderByCreatedAtDesc(target, otpType);
+                ? otpRepository.findTopByUserAndOtpTypeOrderByCreatedAtDesc(user, otpType)
+                : otpRepository.findTopByTargetAndOtpTypeOrderByCreatedAtDesc(target, otpType);
 
         if (otpOptional.isEmpty()) {
             throw new InvalidOtpException("No OTP found for the given identifier and type.");
@@ -168,7 +191,7 @@ public class OtpService {
 
         if (otp.isUsed() || otp.isRevoked() || otp.isExpired()) {
             log.warn("Invalid OTP state - used: {}, revoked: {}, expired: {} for type: {}",
-                 otp.isUsed(), otp.isRevoked(), otp.isExpired(), otpType);
+                    otp.isUsed(), otp.isRevoked(), otp.isExpired(), otpType);
             throw new InvalidOtpException("The OTP is no longer valid.");
         }
 
@@ -179,7 +202,10 @@ public class OtpService {
         if (!HashUtils.verify(otpCode, otp.getOtp())) {
             otp.incrementAttemptCount();
             otpRepository.save(otp);
-            throw new InvalidOtpException("Invalid OTP code.");
+            OtpLimitState postIncrementFailAttemptState = getFailedAttemptsState(target, user, otpType);
+            OtpLimitState resendState = getOtpResendState(target, user, otpType);
+            log.warn("OTP verification failed for identifier::type: {}/{}", target != null ? target : user.getId(), otpType);
+            return OtpVerificationResponse.failure("Invalid OTP code.", postIncrementFailAttemptState, resendState);
         }
 
         otp.setUsedAt(Instant.now());
@@ -194,4 +220,5 @@ public class OtpService {
             case RESET_PASSWORD -> OtpVerificationResponse.success();
         };
     }
+
 }
