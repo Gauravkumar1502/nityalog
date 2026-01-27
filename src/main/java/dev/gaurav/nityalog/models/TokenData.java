@@ -3,6 +3,7 @@ package dev.gaurav.nityalog.models;
 
 import dev.gaurav.nityalog.enums.TokenType;
 import java.time.Duration;
+import java.util.UUID;
 
-public record TokenData(TokenType tokenType, String token, String jti, Duration expiresIn) {
+public record TokenData(TokenType tokenType, String token, UUID jti, Duration expiresIn) {
 }

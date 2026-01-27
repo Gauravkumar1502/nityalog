@@ -9,6 +9,7 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "token",
@@ -34,7 +35,7 @@ public class Token extends BaseEntity {
     @Column(name = "token_type", nullable = false, length = 30)
     private TokenType tokenType;
 
-    @Column(name = "hashed_token", nullable = false, length = 64)
+    @Column(name = "hashed_token", nullable = false, length = 128)
     private String hashedToken;
 
     @Column(name = "used_at")
@@ -54,7 +55,7 @@ public class Token extends BaseEntity {
     private Token parentToken;
 
     @Column(name = "jti", unique = true, length = 50)
-    private String jti;
+    private UUID jti;
 
     public boolean isRevoked() {
         return revokedAt != null;
