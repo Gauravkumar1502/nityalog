@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
             EmailAlreadyExistsException ex,
             HttpServletRequest request
     ) {
-        ApiError error = ApiError.badRequest(ex.getMessage(), request.getRequestURI());
+        ApiError error = new ApiError("Email already in use.", ex.getMessage(), request.getRequestURI());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(HttpStatus.CONFLICT.value(), error));
     }
 
