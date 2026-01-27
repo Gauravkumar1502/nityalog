@@ -4,17 +4,16 @@ import com.nimbusds.jwt.SignedJWT;
 import dev.gaurav.nityalog.entities.JwtKey;
 import dev.gaurav.nityalog.entities.User;
 import dev.gaurav.nityalog.enums.JwtKeyStatus;
+import dev.gaurav.nityalog.enums.TokenType;
 import dev.gaurav.nityalog.exceptions.*;
+import dev.gaurav.nityalog.models.TokenData;
 import dev.gaurav.nityalog.properties.JwtProperties;
 import dev.gaurav.nityalog.repositories.JwtKeyRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.security.*;
 import java.security.interfaces.RSAPublicKey;
@@ -27,59 +26,17 @@ public class JwtService {
 
     private final JwtProperties jwtProperties;
     private final JwtKeyRepository jwtKeyRepository;
-    private static final String KEY_ALGORITHM = "RSA";
     private static final SignatureAlgorithm JWT_ALGORITHM = SignatureAlgorithm.RS256;
+    private final JwtKeyManager jwtKeyManager;
 
     public JwtService(
             JwtProperties jwtProperties,
             UserDetailsService userDetailsService,
-            JwtKeyRepository jwtKeyRepository
-    ) {
+            JwtKeyRepository jwtKeyRepository,
+            JwtKeyManager jwtKeyManager) {
         this.jwtProperties = jwtProperties;
         this.jwtKeyRepository = jwtKeyRepository;
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<JwtKey> loadActiveKey() {
-        return jwtKeyRepository.findFirstByStatusOrderByCreatedAtDesc(JwtKeyStatus.ACTIVE);
-    }
-
-    // Isolation.SERIALIZABLE is used to make sure no other transaction can read or write data until this transaction is complete
-    @Transactional(isolation = Isolation.SERIALIZABLE)
-    public JwtKey generateAndPersistKey() {
-        try {
-            KeyPairGenerator kpg = KeyPairGenerator.getInstance(KEY_ALGORITHM);
-            kpg.initialize(2048, SecureRandom.getInstanceStrong());
-            KeyPair keyPair = kpg.generateKeyPair();
-            String privatePem = toPkcs8Pem(keyPair.getPrivate());
-            String publicPem = toX509Pem(keyPair.getPublic());
-            int deactivatedKeysCount = jwtKeyRepository.retireAllActiveKeys();
-            log.info("Retired {} old JWT keys", deactivatedKeysCount);
-            JwtKey key = JwtKey.builder()
-                    .algorithm(JWT_ALGORITHM.getName())
-                    .status(JwtKeyStatus.ACTIVE)
-                    .publicKeyPem(publicPem)
-                    .privateKeyPem(privatePem)
-                    .build();
-            return jwtKeyRepository.save(key);
-        } catch (DataIntegrityViolationException e) {
-            // Handle race condition where another node, pod and VM created a key first
-            log.warn("Another node rotated key first, reloading active key");
-            return jwtKeyRepository.findFirstByStatusOrderByCreatedAtDesc(JwtKeyStatus.ACTIVE)
-                    .orElseThrow();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to generate RSA key pair", e);
-        }
-    }
-
-    private String toPkcs8Pem(PrivateKey privateKey) {
-        String base64 = Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(privateKey.getEncoded());
-        return "-----BEGIN PRIVATE KEY-----\n" + base64 + "\n-----END PRIVATE KEY-----\n";
-    }
-
-    private String toX509Pem(PublicKey publicKey) {
-        String base64 = Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(publicKey.getEncoded());
-        return "-----BEGIN PUBLIC KEY-----\n" + base64 + "\n-----END PUBLIC KEY-----\n";
+        this.jwtKeyManager = jwtKeyManager;
     }
 
     public Jwt decodeWithRotationSupport(String token) {
@@ -146,6 +103,71 @@ public class JwtService {
         if (jwt.getSubject() == null || !jwt.getSubject().equals(user.getUsername())) {
             throw new InvalidSubjectException("JWT subject does not match authenticated user");
         }
+    }
+
+    public TokenData generateAccessToken(User user) {
+        return generateAccessToken(user, Map.of());
+    }
+
+    public TokenData generateAccessToken(User user, Map<String, Object> additionalClaims) {
+        Instant now = Instant.now();
+        Instant exp = now.plus(jwtProperties.accessTtl());
+        UUID jti = UUID.randomUUID();
+
+        JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
+                .issuer(jwtProperties.issuer().toString())
+                .audience(List.of(jwtProperties.audience()))
+                .issuedAt(now)
+                .expiresAt(exp)
+                .id(jti.toString())
+                .subject(user.getId().toString())
+                .claim("username", user.getUsername())
+                .claim("type", "access")
+                .claim("role", user.getRole().name());
+
+        additionalClaims.forEach(claims::claim);
+
+        JwsHeader headers = JwsHeader.with(SignatureAlgorithm.RS256)
+                .type("JWT")
+                .keyId(jwtKeyManager.getActiveKeyId().toString())
+                .build();
+        return new TokenData(TokenType.ACCESS,
+                jwtKeyManager.getEncoder().encode(JwtEncoderParameters.from(headers, claims.build())).getTokenValue(),
+                jti,
+                jwtProperties.accessTtl()
+        );
+    }
+
+    public TokenData generateRefreshToken(User user) {
+        return generateRefreshToken(user, Map.of());
+    }
+
+    public TokenData generateRefreshToken(User user, Map<String, Object> additionalClaims) {
+        Instant now = Instant.now();
+        Instant exp = now.plus(jwtProperties.refreshTtl());
+        UUID jti = UUID.randomUUID();
+
+        JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
+                .issuer(jwtProperties.issuer().toString())
+                .audience(List.of(jwtProperties.audience()))
+                .issuedAt(now)
+                .expiresAt(exp)
+                .id(jti.toString())
+                .subject(user.getId().toString())
+                .claim("type", "refresh");
+
+        additionalClaims.forEach(claims::claim);
+
+        JwsHeader headers = JwsHeader.with(SignatureAlgorithm.RS256)
+                .type("JWT")
+                .keyId(jwtKeyManager.getActiveKeyId().toString())
+                .build();
+
+        return new TokenData(TokenType.REFRESH,
+                jwtKeyManager.getEncoder().encode(JwtEncoderParameters.from(headers, claims.build())).getTokenValue(),
+                jti,
+                jwtProperties.refreshTtl()
+        );
     }
 
 }

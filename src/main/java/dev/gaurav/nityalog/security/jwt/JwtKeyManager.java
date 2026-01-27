@@ -11,15 +11,17 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Slf4j
 @Service
 public class JwtKeyManager {
-    private final JwtService jwtService;
+    private final RsaKeyGenerator rsaKeyGenerator;
     private volatile JwtKey activeKey;
     private volatile JwtEncoder encoder;
 
-    public JwtKeyManager(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public JwtKeyManager(RsaKeyGenerator rsaKeyGenerator) {
+        this.rsaKeyGenerator = rsaKeyGenerator;
     }
 
     @PostConstruct
@@ -34,8 +36,8 @@ public class JwtKeyManager {
      */
     private synchronized void loadOrCreateActiveKey() {
         log.info("Loading or creating active JWT key...");
-        this.activeKey = jwtService.loadActiveKey()
-                .orElseGet(jwtService::generateAndPersistKey);
+        this.activeKey = rsaKeyGenerator.loadActiveKey()
+                .orElseGet(rsaKeyGenerator::generateAndPersistKey);
 
         log.info("Active JWT key loaded: {}", activeKey.getId());
         refreshEncoder();
@@ -51,7 +53,7 @@ public class JwtKeyManager {
     public synchronized void rotateKey() {
         try {
             log.info("Rotating JWT key...");
-            this.activeKey = jwtService.generateAndPersistKey();
+            this.activeKey = rsaKeyGenerator.generateAndPersistKey();
             log.info("New JWT key created: {}", this.activeKey.getId());
             refreshEncoder();
         } catch (Exception e) {
@@ -73,5 +75,9 @@ public class JwtKeyManager {
             throw new IllegalStateException("JWT Key not initialized");
         }
         return local;
+    }
+
+    public UUID getActiveKeyId() {
+        return activeKey.getId();
     }
 }
