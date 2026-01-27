@@ -1,10 +1,8 @@
 package dev.gaurav.nityalog.dtos;
 
-import dev.gaurav.nityalog.models.TokenData;
-
 public record OtpVerificationResponse(
         String message,
-        TokenData tokenData,  // Only for LOGIN/MFA types for success response
+        AuthResponse tokenData,  // Only for LOGIN/MFA types for success response
         OtpLimitState verify,
         OtpLimitState resend
 ) {
@@ -12,7 +10,7 @@ public record OtpVerificationResponse(
         return new OtpVerificationResponse("OTP verified successfully", null, null, null);
     }
 
-    public static OtpVerificationResponse withToken(TokenData tokenData) {
+    public static OtpVerificationResponse withTokens(AuthResponse tokenData) {
         return new OtpVerificationResponse("OTP verified successfully", tokenData, null, null);
     }
 
