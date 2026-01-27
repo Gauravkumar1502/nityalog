@@ -1,16 +1,17 @@
 package dev.gaurav.nityalog.services;
 
+import dev.gaurav.nityalog.dtos.AuthResponse;
 import dev.gaurav.nityalog.dtos.OtpLimitState;
 import dev.gaurav.nityalog.dtos.OtpVerificationResponse;
 import dev.gaurav.nityalog.entities.Otp;
 import dev.gaurav.nityalog.entities.User;
 import dev.gaurav.nityalog.enums.OtpType;
-import dev.gaurav.nityalog.enums.TokenType;
 import dev.gaurav.nityalog.exceptions.InvalidOtpException;
 import dev.gaurav.nityalog.exceptions.LimitExceededException;
 import dev.gaurav.nityalog.exceptions.TooManyRequestsException;
 import dev.gaurav.nityalog.models.TokenData;
 import dev.gaurav.nityalog.repositories.OtpRepository;
+import dev.gaurav.nityalog.security.jwt.JwtService;
 import dev.gaurav.nityalog.utils.HashUtils;
 import dev.gaurav.nityalog.utils.ValidationUtils;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -32,6 +34,9 @@ public class OtpService {
 
     private final OtpRepository otpRepository;
     private final SecureRandom RANDOM = new SecureRandom();
+    private final UserService userService;
+    private final TokenService tokenService;
+    private final JwtService jwtService;
 
     public String generateOtpCode(int length) {
         StringBuilder sb = new StringBuilder(length);
@@ -212,10 +217,24 @@ public class OtpService {
         otpRepository.save(otp);
         log.info("OTP verified successfully for identifier::type: {}/{}", target != null ? target : user.getId(), otpType);
         return switch (otpType) {
-            case LOGIN, MFA, EMAIL_VERIFY, PHONE_VERIFY -> {
+            case EMAIL_VERIFY, PHONE_VERIFY -> {
+                User newUser = userService.createUser(target);
                 // TODO:: Generate token data
-                TokenData tokenData = new TokenData(TokenType.ACCESS, "token", "jti", Duration.ofHours(1));
-                yield OtpVerificationResponse.withToken(tokenData);
+                TokenData accessTokenData = jwtService.generateAccessToken(newUser);
+                TokenData refreshTokenData = jwtService.generateRefreshToken(newUser);
+                tokenService.save(newUser, List.of(accessTokenData, refreshTokenData));
+                yield OtpVerificationResponse.withTokens(AuthResponse.builder()
+                        .accessToken(accessTokenData.token())
+                        .expiresIn(accessTokenData.expiresIn().toSeconds())
+                        .refreshToken(refreshTokenData.token())
+                        .refreshExpiresIn(refreshTokenData.expiresIn().toSeconds())
+                        .tokenType("Bearer")
+                        .build()
+                );
+            }
+            case LOGIN, MFA -> {
+                // TODO:: Generate token data
+                yield null;
             }
             case RESET_PASSWORD -> OtpVerificationResponse.success();
         };

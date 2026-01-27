@@ -2,7 +2,6 @@ package dev.gaurav.nityalog.controllers;
 
 import dev.gaurav.nityalog.dtos.*;
 import dev.gaurav.nityalog.services.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,18 +1,19 @@
 package dev.gaurav.nityalog.services;
 
 import dev.gaurav.nityalog.entities.User;
+import dev.gaurav.nityalog.enums.Role;
 import dev.gaurav.nityalog.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -56,5 +57,23 @@ public class UserService implements UserDetailsService {
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    public User createUser(String email) {
+        User user = User.builder()
+                .email(email)
+                .username(this.generateUsernameFromEmail(email))
+                .role(Role.USER)
+                .build();
+        return userRepository.save(user);
+    }
+
+    private String generateUsernameFromEmail(String email) {
+        String suffix = UUID.randomUUID().toString().substring(0, 6);
+        return email.substring(0, email.indexOf('@'))
+                .toLowerCase()
+                .replaceAll("[^a-z0-9]", "")
+                .concat("_")
+                .concat(suffix);
     }
 }

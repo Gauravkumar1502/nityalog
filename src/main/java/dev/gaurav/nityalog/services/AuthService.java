@@ -5,6 +5,7 @@ import dev.gaurav.nityalog.entities.Otp;
 import dev.gaurav.nityalog.entities.User;
 import dev.gaurav.nityalog.enums.OtpType;
 import dev.gaurav.nityalog.exceptions.EmailAlreadyExistsException;
+import dev.gaurav.nityalog.exceptions.LimitExceededException;
 import dev.gaurav.nityalog.exceptions.UserNotFoundException;
 import dev.gaurav.nityalog.utils.ValidationUtils;
 import lombok.RequiredArgsConstructor;
@@ -25,16 +26,16 @@ public class AuthService {
     private final UserService userService;
 
     public OtpDispatchResponse registerUser(RegisterRequest request) {
-        String email = request.email();
+        String email = request.email().trim();
 
         if (userService.existsByEmail(email)) {
-            throw new EmailAlreadyExistsException("Email is already registered.");
+            throw new EmailAlreadyExistsException("The provided email address is already associated with an existing account.");
         }
         return sendOtp(email, null, OtpType.EMAIL_VERIFY);
     }
 
     public OtpDispatchResponse resendOtp(ResendOtpRequest request) {
-        String identifier = request.identifier();
+        String identifier = request.identifier().trim();
         OtpType otpType = request.otpType();
 
         return switch (otpType) {
@@ -70,7 +71,7 @@ public class AuthService {
                     throw new IllegalArgumentException("EMAIL_VERIFY/PHONE_VERIFY OTP must use identifier, not user.");
                 }
                 if (userService.existsByEmail(target)) {
-                    throw new EmailAlreadyExistsException("Email is already registered.");
+                    throw new EmailAlreadyExistsException("The provided email address is already associated with an existing account.");
                 }
             }
             case LOGIN, RESET_PASSWORD, MFA -> {
@@ -80,8 +81,10 @@ public class AuthService {
             }
         }
 
-        OtpLimitState resendState = otpService.validateOtpResend(target, user, otpType);
-        OtpLimitState verifyState = otpService.validateFailedAttempts(target, user, otpType);
+        OtpLimitState resendState = otpService.getOtpResendState(target, user, otpType);
+        if (resendState.attemptsLeft() == 0) {
+            throw new LimitExceededException("Maximum OTP resends exceeded.");
+        }
 
         Optional<Otp> lastOtpOptional = (user != null)
             ? otpService.getLatestOtp(user, otpType)
@@ -110,22 +113,22 @@ public class AuthService {
                 .build();
         otpService.save(otp);
 
-       mailService.sendOtpEmail(
-            user != null ? user.getEmail() : target,
-            rawOtp,
-            otpType
-       );
+        mailService.sendOtpEmail(
+                user != null ? user.getEmail() : target,
+                rawOtp,
+                otpType
+        );
 
         return OtpDispatchResponse.builder()
                 .message("OTP sent successfully.")
-                .resend(resendState)
-                .verify(verifyState)
+                .resend(otpService.getOtpResendState(target, user, otpType))
+                .verify(otpService.getFailedAttemptsState(target, user, otpType))
                 .build();
     }
 
     public OtpVerificationResponse verifyOtp(VerifyOtpRequest request) {
-        String identifier = request.identifier();
-        String otpCode = request.otp();
+        String identifier = request.identifier().trim();
+        String otpCode = request.otp().trim();
         OtpType otpType = request.otpType();
 
         User user = null;
