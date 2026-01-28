@@ -34,7 +34,7 @@ public class AuthService {
         return sendOtp(email, null, OtpType.EMAIL_VERIFY);
     }
 
-    public OtpDispatchResponse resendOtp(ResendOtpRequest request) {
+    public OtpDispatchResponse resendOtp(OtpRequest request) {
         String identifier = request.identifier().trim();
         OtpType otpType = request.otpType();
 
