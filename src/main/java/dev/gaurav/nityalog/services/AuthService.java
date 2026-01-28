@@ -7,9 +7,13 @@ import dev.gaurav.nityalog.enums.OtpType;
 import dev.gaurav.nityalog.exceptions.EmailAlreadyExistsException;
 import dev.gaurav.nityalog.exceptions.LimitExceededException;
 import dev.gaurav.nityalog.exceptions.UserNotFoundException;
+import dev.gaurav.nityalog.models.TokenData;
+import dev.gaurav.nityalog.security.jwt.JwtService;
 import dev.gaurav.nityalog.utils.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +28,8 @@ public class AuthService {
     private final OtpService otpService;
     private final MailService mailService;
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public OtpDispatchResponse registerUser(RegisterRequest request) {
         String email = request.email().trim();
@@ -144,6 +150,33 @@ public class AuthService {
         }
 
         return otpService.verifyOtp(otpCode, target, user, otpType);
+    }
+
+    public AuthResponse loginUser(LoginRequest request) {
+        String usernameOrEmail = request.usernameOrEmail().trim();
+        String rawPassword = request.password().trim();
+        User user = userService.loadUserByUsername(usernameOrEmail);
+        String password = user.getPassword();
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("No password set for this user. Please login using OTP and set a password.");
+        }
+
+        if (!passwordEncoder.matches(rawPassword, password)) {
+            throw new BadCredentialsException("Invalid username/email or password.");
+        }
+
+        userService.validateUserStatus(user);
+
+        TokenData accessTokenData = jwtService.generateAccessToken(user);
+        TokenData refreshTokenData = jwtService.generateRefreshToken(user);
+
+        return AuthResponse.builder()
+                .accessToken(accessTokenData.token())
+                .refreshToken(refreshTokenData.token())
+                .expiresIn(accessTokenData.expiresIn().toSeconds())
+                .refreshExpiresIn(refreshTokenData.expiresIn().toSeconds())
+                .tokenType("Bearer")
+                .build();
     }
 
 }

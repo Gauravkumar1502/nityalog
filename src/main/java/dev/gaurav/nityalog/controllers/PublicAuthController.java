@@ -24,8 +24,13 @@ public class PublicAuthController {
     }
 
     @PostMapping("resend-otp")
-    public ResponseEntity<ApiResponse<OtpDispatchResponse>> resendRegisterOtp(@Valid @RequestBody ResendOtpRequest request) {
+    public ResponseEntity<ApiResponse<OtpDispatchResponse>> resendRegisterOtp(@Valid @RequestBody OtpRequest request) {
             return ResponseEntity.ok(ApiResponse.success(authService.resendOtp(request)));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> loginUser(@Valid @RequestBody LoginRequest request) {
+            return ResponseEntity.ok(ApiResponse.success(authService.loginUser(request)));
     }
 
 }
