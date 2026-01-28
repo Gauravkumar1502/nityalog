@@ -2,10 +2,15 @@ package dev.gaurav.nityalog.services;
 
 import dev.gaurav.nityalog.entities.User;
 import dev.gaurav.nityalog.enums.Role;
+import dev.gaurav.nityalog.exceptions.UserNotFoundException;
 import dev.gaurav.nityalog.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.security.authentication.AccountExpiredException;
+import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -44,7 +49,7 @@ public class UserService implements UserDetailsService {
         log.debug("Loading user by usernameOrEmail: {}", usernameOrEmail);
 
         User user = userRepository.findByUsernameOrEmail(usernameOrEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + usernameOrEmail));
+                .orElseThrow(() -> new UserNotFoundException("No user exists with username or email: " + usernameOrEmail));
         log.info("User found with usernameOrEmail: {}", usernameOrEmail);
         return user;
     }
@@ -75,5 +80,23 @@ public class UserService implements UserDetailsService {
                 .replaceAll("[^a-z0-9]", "")
                 .concat("_")
                 .concat(suffix);
+    }
+
+    public void validateUserStatus(User user) {
+        if (!user.isEnabled()) {
+            throw new DisabledException("User account is disabled.");
+        }
+
+        if (!user.isAccountNonLocked()) {
+            throw new LockedException("User account is locked.");
+        }
+
+        if (!user.isAccountNonExpired()) {
+            throw new AccountExpiredException("User account has expired.");
+        }
+
+        if (!user.isCredentialsNonExpired()) {
+            throw new CredentialsExpiredException("User credentials have expired.");
+        }
     }
 }
