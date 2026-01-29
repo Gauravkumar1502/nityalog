@@ -219,25 +219,28 @@ public class OtpService {
         return switch (otpType) {
             case EMAIL_VERIFY, PHONE_VERIFY -> {
                 User newUser = userService.createUser(target);
-                // TODO:: Generate token data
-                TokenData accessTokenData = jwtService.generateAccessToken(newUser);
-                TokenData refreshTokenData = jwtService.generateRefreshToken(newUser);
-                tokenService.save(newUser, List.of(accessTokenData, refreshTokenData));
-                yield OtpVerificationResponse.withTokens(AuthResponse.builder()
+                yield buildAuthResponse(newUser);
+            }
+            case LOGIN, MFA -> buildAuthResponse(user);
+            case RESET_PASSWORD -> OtpVerificationResponse.success();
+        };
+    }
+
+    private OtpVerificationResponse buildAuthResponse(User user) {
+        TokenData accessTokenData = jwtService.generateAccessToken(user);
+        TokenData refreshTokenData = jwtService.generateRefreshToken(user);
+
+        tokenService.save(user, List.of(accessTokenData, refreshTokenData));
+
+        return OtpVerificationResponse.withTokens(
+                AuthResponse.builder()
                         .accessToken(accessTokenData.token())
                         .expiresIn(accessTokenData.expiresIn().toSeconds())
                         .refreshToken(refreshTokenData.token())
                         .refreshExpiresIn(refreshTokenData.expiresIn().toSeconds())
                         .tokenType("Bearer")
                         .build()
-                );
-            }
-            case LOGIN, MFA -> {
-                // TODO:: Generate token data
-                yield null;
-            }
-            case RESET_PASSWORD -> OtpVerificationResponse.success();
-        };
+        );
     }
 
 }
