@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -30,6 +31,7 @@ public class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final TokenService tokenService;
 
     public OtpDispatchResponse registerUser(RegisterRequest request) {
         String email = request.email().trim();
@@ -137,19 +139,12 @@ public class AuthService {
         String otpCode = request.otp().trim();
         OtpType otpType = request.otpType();
 
-        User user = null;
-        String target = null;
-
-        switch (otpType) {
-            case EMAIL_VERIFY, PHONE_VERIFY -> {
-                target = identifier;
-            }
-            case LOGIN, RESET_PASSWORD, MFA -> {
-                user = userService.loadUserByUsername(identifier);
-            }
-        }
-
-        return otpService.verifyOtp(otpCode, target, user, otpType);
+        return switch (otpType) {
+            case EMAIL_VERIFY, PHONE_VERIFY ->
+                    otpService.verifyOtp(otpCode, identifier, null, otpType);
+            case LOGIN, RESET_PASSWORD, MFA ->
+                    otpService.verifyOtp(otpCode,null, userService.loadUserByUsername(identifier), otpType);
+        };
     }
 
     public AuthResponse loginUser(LoginRequest request) {
@@ -169,6 +164,8 @@ public class AuthService {
 
         TokenData accessTokenData = jwtService.generateAccessToken(user);
         TokenData refreshTokenData = jwtService.generateRefreshToken(user);
+
+        tokenService.save(user, List.of(accessTokenData, refreshTokenData));
 
         return AuthResponse.builder()
                 .accessToken(accessTokenData.token())
