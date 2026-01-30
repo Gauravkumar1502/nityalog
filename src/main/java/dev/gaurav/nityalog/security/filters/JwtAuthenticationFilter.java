@@ -2,6 +2,7 @@ package dev.gaurav.nityalog.security.filters;
 
 import dev.gaurav.nityalog.constants.SecurityConstants;
 import dev.gaurav.nityalog.entities.User;
+import dev.gaurav.nityalog.exceptions.JwtAuthenticationException;
 import dev.gaurav.nityalog.security.jwt.JwtService;
 import dev.gaurav.nityalog.services.UserService;
 import jakarta.servlet.FilterChain;
@@ -13,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
@@ -45,17 +46,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             Jwt jwt = jwtService.decodeWithRotationSupport(token);
             String username = jwt.getSubject();
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                User user = userService.loadUserByUsername(username);
-                jwtService.validateToken(jwt, user);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } else {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token: missing subject");
+
+            if (username == null) {
+                log.warn("JWT token is missing subject");
+                throw new JwtAuthenticationException("Invalid token: missing subject");
             }
-        } catch (Exception e) {
-            log.error("Token validation error: {}", e.getMessage());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+
+            if (SecurityContextHolder.getContext().getAuthentication() != null) {
+                log.warn("SecurityContext already contains authentication for user: {}", SecurityContextHolder.getContext().getAuthentication().getName());
+                throw new JwtAuthenticationException("Authentication already exists");
+            }
+
+            User user = userService.loadUserByUsername(username);
+            jwtService.validateToken(jwt, user);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            filterChain.doFilter(request, response);
+
+        } catch (AuthenticationException e) {
+            log.warn("Token validation error: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+            throw e;
+        } catch (Exception ex) {
+            SecurityContextHolder.clearContext();
+            throw new JwtAuthenticationException("Invalid JWT token", ex);
         }
     }
 
