@@ -2,9 +2,11 @@ package dev.gaurav.nityalog.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @RequiredArgsConstructor
+@Slf4j
 public enum ProviderType {
     EMAIL("Email", 0),
     GOOGLE("Google", 1),
@@ -24,5 +26,21 @@ public enum ProviderType {
             }
         }
         throw new IllegalArgumentException("Unknown provider code: " + code);
+    }
+
+     public ProviderType getProviderTypeFromRegistrationId(String registrationId) {
+        return switch (registrationId) {
+            case "email" -> EMAIL;
+            case "google" -> GOOGLE;
+            case "github" -> GITHUB;
+            case "facebook" -> FACEBOOK;
+            case "twitter" -> TWITTER;
+            case "discord" -> DISCORD;
+            case "linkedin" -> LINKEDIN;
+            default -> {
+                log.error("Unsupported OAuth2 provider: {}", registrationId);
+                throw new IllegalArgumentException("Unsupported OAuth2 provider: " + registrationId);
+            }
+        };
     }
 }
