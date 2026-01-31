@@ -30,7 +30,7 @@ public class User extends BaseEntity implements UserDetails {
 
     private String password;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true)
     private String email;
 
     @Builder.Default
