@@ -10,6 +10,7 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
@@ -29,10 +30,12 @@ public abstract class BaseEntity {
     private UUID id;
 
     @CreatedDate
+    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
+    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 

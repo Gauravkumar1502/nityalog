@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "user_profile")
 @Getter
@@ -28,4 +30,13 @@ public class UserProfile extends BaseEntity {
 
     @Column(name = "last_name", length = 50)
     private String lastName;
+
+    @Column(name = "display_name", length = 100)
+    private String displayName;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 }

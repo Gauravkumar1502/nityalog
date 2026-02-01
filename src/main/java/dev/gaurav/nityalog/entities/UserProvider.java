@@ -7,14 +7,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "user_provider",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "provider_type"}),
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "provider_type"}),
+                @UniqueConstraint(columnNames = {"provider_type", "provider_user_id"})
+        },
         indexes = {
-            @Index(name = "idx_user_provider", columnList = "user_id, provider_type")
+                @Index(name = "idx_user_provider_user", columnList = "user_id"),
+                @Index(name = "idx_user_provider_provider", columnList = "provider_type, provider_user_id")
         }
 )
 @Getter
@@ -31,9 +36,19 @@ public class UserProvider extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ProviderType providerType;
 
-    @Column(name = "provider_user_id")
+    @Column(name = "provider_user_id", nullable = false)
     private String providerUserId;
 
+    @Column(name = "provider_username")
+    private String providerUsername;
+
+    @Column(name = "provider_email")
+    private String providerEmail;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
     @Column(name = "last_used_at")
+    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant lastUsedAt;
 }

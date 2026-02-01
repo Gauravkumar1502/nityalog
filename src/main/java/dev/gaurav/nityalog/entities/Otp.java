@@ -5,6 +5,7 @@ import dev.gaurav.nityalog.utils.HashUtils;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 
 import java.time.Instant;
 
@@ -40,12 +41,15 @@ public class Otp extends BaseEntity {
 
     // Lifecycle
     @Column(name = "expires_at", nullable = false, updatable = false)
+    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant expiresAt;
 
     @Column(name = "used_at")
+    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant usedAt;
 
     @Column(name = "revoked_at")
+    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant revokedAt;
 
     // Security controls
