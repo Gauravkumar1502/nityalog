@@ -23,38 +23,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @SuperBuilder
 @EntityListeners(AuditingEntityListener.class)
-public abstract class BaseEntity {
+public abstract class BaseEntity extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
-
-    @CreatedDate
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @LastModifiedDate
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-
-    @CreatedBy
-    @Column(
-            name = "created_by",
-            updatable = false,
-            columnDefinition = "varchar(255) default 'SYSTEM'"
-    )
-    private String createdBy;
-
-    @LastModifiedBy
-    @Column(
-            name = "updated_by",
-            columnDefinition = "varchar(255) default 'SYSTEM'"
-    )
-    private String updatedBy;
-
-    @Version
-    @Column(name = "version", nullable = false)
-    private Long version;
 }
