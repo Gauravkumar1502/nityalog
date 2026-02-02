@@ -49,6 +49,5 @@ public class UserProvider extends BaseEntity {
     private String avatarUrl;
 
     @Column(name = "last_used_at")
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant lastUsedAt;
 }

@@ -31,20 +31,16 @@ public class UserSecurity extends AuditableEntity {
     private User user;
 
     @Column(name = "last_login_at")
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant lastLogin;
 
     @Builder.Default
     @Column(name = "failed_login_attempts", nullable = false)
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Integer failedLoginAttempts = 0;
 
     @Column(name = "locked_until")
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant lockedUntil;
 
     @Column(name = "last_password_change_at")
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant lastPasswordChangeAt;
 
     @Builder.Default

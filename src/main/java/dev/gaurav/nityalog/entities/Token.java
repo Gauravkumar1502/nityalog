@@ -40,15 +40,12 @@ public class Token extends BaseEntity {
     private String hashedToken;
 
     @Column(name = "used_at")
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant usedAt;
 
     @Column(name = "expires_at", nullable = false)
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant expiresAt;
 
     @Column(name = "revoked_at")
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     private Instant revokedAt;
 
     @Column(name = "revocation_reason", length = 50)

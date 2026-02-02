@@ -24,12 +24,10 @@ import java.time.Instant;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class AuditableEntity {
     @CreatedDate
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
-    @Convert(converter = Jsr310JpaConverters.InstantConverter.class)
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
