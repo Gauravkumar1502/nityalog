@@ -9,7 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public enum ProviderType {
     EMAIL("email", "Email", 0),
-    GOOGLE("google", "Google", 1);
+    PHONE("phone", "Phone", 1),
+    GOOGLE("google", "Google", 2);
     // For Future Use
 //    GITHUB("github", "GitHub", 2),
 //    FACEBOOK("facebook", "Facebook", 3),
