@@ -6,6 +6,7 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "user_security",
@@ -18,10 +19,15 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class UserSecurity extends BaseEntity {
+public class UserSecurity extends AuditableEntity {
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @Id
+    @Column(name = "user_id")
+    private UUID id;
+
+    @MapsId
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Column(name = "last_login_at")

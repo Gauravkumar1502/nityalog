@@ -9,6 +9,7 @@ import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 
 import java.time.ZoneId;
 import java.util.Locale;
+import java.util.UUID;
 
 @Entity
 @Table(name = "user_settings",
@@ -20,10 +21,15 @@ import java.util.Locale;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class UserSettings extends BaseEntity {
+public class UserSettings extends AuditableEntity {
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @Id
+    @Column(name = "user_id")
+    private UUID id;
+
+    @MapsId
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Enumerated(EnumType.STRING)

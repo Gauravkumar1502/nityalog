@@ -57,9 +57,38 @@ public class User extends BaseEntity implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private Set<UserProvider> userProviders = new HashSet<>();
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, optional = false)
+    private UserSettings settings;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, optional = false)
+    private UserSecurity security;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, optional = false)
+    private UserProfile profile;
+
     @NonNull
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.name()));
+    }
+
+    /**
+     * Initialize dependent entities before persisting
+     * Ensures every user has settings, security, and profile
+     */
+    @PrePersist
+    private void initializeDependentEntities() {
+        if (settings == null) {
+            settings = new UserSettings();
+            settings.setUser(this);
+        }
+        if (security == null) {
+            security = new UserSecurity();
+            security.setUser(this);
+        }
+        if (profile == null) {
+            profile = new UserProfile();
+            profile.setUser(this);
+        }
     }
 }
