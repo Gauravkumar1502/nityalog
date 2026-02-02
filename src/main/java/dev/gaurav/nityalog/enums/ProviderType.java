@@ -9,12 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public enum ProviderType {
     EMAIL("email", "Email", 0),
-    GOOGLE("google", "Google", 1),
-    GITHUB("github", "GitHub", 2),
-    FACEBOOK("facebook", "Facebook", 3),
-    TWITTER("twitter", "Twitter", 4),
-    DISCORD("discord", "Discord", 5),
-    LINKEDIN("linkedin", "LinkedIn", 6);
+    GOOGLE("google", "Google", 1);
+    // For Future Use
+//    GITHUB("github", "GitHub", 2),
+//    FACEBOOK("facebook", "Facebook", 3),
+//    TWITTER("twitter", "Twitter", 4),
+//    DISCORD("discord", "Discord", 5),
+//    LINKEDIN("linkedin", "LinkedIn", 6);
 
     private final String registrationId;
     private final String displayName;
