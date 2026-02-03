@@ -5,7 +5,9 @@ import dev.gaurav.nityalog.dtos.OtpLimitState;
 import dev.gaurav.nityalog.dtos.OtpVerificationResponse;
 import dev.gaurav.nityalog.entities.Otp;
 import dev.gaurav.nityalog.entities.User;
+import dev.gaurav.nityalog.entities.UserProvider;
 import dev.gaurav.nityalog.enums.OtpType;
+import dev.gaurav.nityalog.enums.ProviderType;
 import dev.gaurav.nityalog.exceptions.InvalidOtpException;
 import dev.gaurav.nityalog.exceptions.LimitExceededException;
 import dev.gaurav.nityalog.exceptions.TooManyRequestsException;
@@ -37,6 +39,7 @@ public class OtpService {
     private final UserService userService;
     private final TokenService tokenService;
     private final JwtService jwtService;
+    private final UserProviderService userProviderService;
 
     public String generateOtpCode(int length) {
         StringBuilder sb = new StringBuilder(length);
@@ -218,8 +221,16 @@ public class OtpService {
         log.info("OTP verified successfully for identifier::type: {}/{}", target != null ? target : user.getId(), otpType);
         return switch (otpType) {
             case EMAIL_VERIFY, PHONE_VERIFY -> {
-                User newUser = userService.createUser(target);
-                yield buildAuthResponse(newUser);
+                User newUser = userService.save(userService.buildUser(target, otpType));
+                ProviderType providerType = otpType.equals(OtpType.EMAIL_VERIFY) ? ProviderType.EMAIL : ProviderType.PHONE;
+                UserProvider userProvider = userProviderService.buildProvider(
+                        newUser,
+                        providerType,
+                        user.getUsername(),
+                        user.getId().toString(),
+                        user.getEmail());
+                newUser.addProvider(userProvider);
+                yield buildAuthResponse(userService.save(newUser));
             }
             case LOGIN, MFA -> buildAuthResponse(user);
             case RESET_PASSWORD -> OtpVerificationResponse.success();
