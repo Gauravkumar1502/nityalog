@@ -5,7 +5,6 @@ import dev.gaurav.nityalog.enums.Theme;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 
 import java.time.ZoneId;
 import java.util.Locale;
@@ -40,7 +39,6 @@ public class UserSettings extends AuditableEntity {
     @Column(name = "locale", length = 10, nullable = false)
     private Locale locale = Locale.forLanguageTag("en-IN");
 
-    @Convert(converter = Jsr310JpaConverters.ZoneIdConverter.class)
     @Column(name = "timezone", length = 50, nullable = false)
     private ZoneId timezone = ZoneId.of("UTC");
 
