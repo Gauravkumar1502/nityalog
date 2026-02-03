@@ -14,12 +14,17 @@ import java.time.Instant;
 @Entity
 @Table(name = "user_provider",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "provider_type"}),
-                @UniqueConstraint(columnNames = {"provider_type", "provider_user_id"})
-        },
+                @UniqueConstraint(
+                        name = "uk_user_provider__user_provider",
+                        columnNames = {"user_id", "provider_type"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_user_provider__provider_type_provider_user_id",
+                        columnNames = {"provider_type", "provider_user_id"}
+                )},
         indexes = {
                 @Index(name = "idx_user_provider_user", columnList = "user_id"),
-                @Index(name = "idx_user_provider_provider", columnList = "provider_type, provider_user_id")
+                @Index(name = "idx_user_provider__provider_type_provider_user_id", columnList = "provider_type, provider_user_id")
         }
 )
 @Getter
