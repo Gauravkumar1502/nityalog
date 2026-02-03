@@ -91,4 +91,33 @@ public class User extends BaseEntity implements UserDetails {
             profile.setUser(this);
         }
     }
+
+    public void addProvider(UserProvider provider) {
+        userProviders.add(provider);
+        provider.setUser(this);
+    }
+
+    public UserProfile getProfile() {
+        if (profile == null) {
+            profile = new UserProfile();
+            profile.setUser(this);
+        }
+        return profile;
+    }
+
+    public UserSecurity getSecurity() {
+        if (security == null) {
+            security = new UserSecurity();
+            security.setUser(this);
+        }
+        return security;
+    }
+
+    public UserSettings getSettings() {
+        if (settings == null) {
+            settings = new UserSettings();
+            settings.setUser(this);
+        }
+        return settings;
+    }
 }
