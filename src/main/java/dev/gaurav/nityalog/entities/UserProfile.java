@@ -44,4 +44,7 @@ public class UserProfile extends AuditableEntity {
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
+
+    @Column(name = "phone_number", length = 15)
+    private String phoneNumber;
 }
