@@ -1,6 +1,8 @@
 package dev.gaurav.nityalog.services;
 
 import dev.gaurav.nityalog.entities.User;
+import dev.gaurav.nityalog.entities.UserProvider;
+import dev.gaurav.nityalog.enums.OtpType;
 import dev.gaurav.nityalog.enums.Role;
 import dev.gaurav.nityalog.exceptions.UserNotFoundException;
 import dev.gaurav.nityalog.repositories.UserRepository;
@@ -64,13 +66,17 @@ public class UserService implements UserDetailsService {
         return userRepository.existsByEmail(email);
     }
 
-    public User createUser(String email) {
-        User user = User.builder()
-                .email(email)
-                .username(this.generateUsernameFromEmail(email))
-                .role(Role.USER)
-                .build();
-        return userRepository.save(user);
+    public User buildUser(String identifier, OtpType otpType) {
+        boolean isEmail = otpType.equals(OtpType.EMAIL_VERIFY);
+        User drafUser = User.builder()
+            .email(isEmail ? identifier : null)
+            .username(isEmail ? this.generateUsernameFromEmail(identifier) : identifier)
+            .role(Role.USER)
+            .build();
+        if (!isEmail) {
+            drafUser.getProfile().setPhoneNumber(identifier);
+        }
+        return drafUser;
     }
 
     private String generateUsernameFromEmail(String email) {
@@ -98,5 +104,16 @@ public class UserService implements UserDetailsService {
         if (!user.isCredentialsNonExpired()) {
             throw new CredentialsExpiredException("User credentials have expired.");
         }
+    }
+
+    public User save(User newUser) {
+        return userRepository.save(newUser);
+    }
+
+    public User saveWithProvider(User user, UserProvider provider) {
+        User savedUser = userRepository.save(user);
+        provider.setUser(savedUser);
+        savedUser.addProvider(provider);
+        return userRepository.save(savedUser);
     }
 }
