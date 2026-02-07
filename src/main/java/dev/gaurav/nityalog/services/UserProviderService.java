@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,13 +18,7 @@ import java.time.Instant;
 public class UserProviderService {
     private final UserProviderRepository userProviderRepository;
 
-    public UserProvider buildProvider(User user, ProviderType type, String username, String providerUserId, String email) {
-        return UserProvider.builder()
-                .user(user)
-                .providerType(type)
-                .providerUsername(username)
-                .providerUserId(providerUserId)
-                .providerEmail(email)
-                .build();
+    public Optional<UserProvider> findByProviderAndProviderUserId(ProviderType provider, String providerUserId) {
+        return userProviderRepository.findByProviderTypeAndProviderUserId(provider, providerUserId);
     }
 }

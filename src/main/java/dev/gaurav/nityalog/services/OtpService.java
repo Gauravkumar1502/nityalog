@@ -223,12 +223,13 @@ public class OtpService {
             case EMAIL_VERIFY, PHONE_VERIFY -> {
                 User newUser = userService.save(userService.buildUser(target, otpType));
                 ProviderType providerType = otpType.equals(OtpType.EMAIL_VERIFY) ? ProviderType.EMAIL : ProviderType.PHONE;
-                UserProvider userProvider = userProviderService.buildProvider(
-                        newUser,
-                        providerType,
-                        newUser.getUsername(),
-                        newUser.getId().toString(),
-                        newUser.getEmail());
+                UserProvider userProvider = UserProvider.builder()
+                        .user(newUser)
+                        .providerType(providerType)
+                        .providerUserId(newUser.getId().toString())
+                        .providerUsername(newUser.getUsername())
+                        .providerEmail(newUser.getEmail())
+                        .build();
                 user.getSecurity().setLastLogin(Instant.now());
                 userProvider.setLastUsedAt(Instant.now());
                 newUser.addProvider(userProvider);
