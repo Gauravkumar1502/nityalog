@@ -79,7 +79,7 @@ public class UserService implements UserDetailsService {
         return drafUser;
     }
 
-    private String generateUsernameFromEmail(String email) {
+    public String generateUsernameFromEmail(String email) {
         String suffix = UUID.randomUUID().toString().substring(0, 6);
         return email.substring(0, email.indexOf('@'))
                 .toLowerCase()
@@ -115,5 +115,13 @@ public class UserService implements UserDetailsService {
         provider.setUser(savedUser);
         savedUser.addProvider(provider);
         return userRepository.save(savedUser);
+    }
+
+    public User createOAuthUser(String username, String email) {
+        return User.builder()
+                .username(username)
+                .email(email)
+                .role(Role.USER)
+                .build();
     }
 }
