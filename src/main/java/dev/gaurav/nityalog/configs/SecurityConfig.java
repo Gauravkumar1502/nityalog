@@ -2,6 +2,8 @@ package dev.gaurav.nityalog.configs;
 
 import dev.gaurav.nityalog.constants.SecurityConstants;
 import dev.gaurav.nityalog.security.filters.JwtAuthenticationFilter;
+import dev.gaurav.nityalog.security.oauth.OAuth2AuthenticationFailureHandler;
+import dev.gaurav.nityalog.security.oauth.OAuth2AuthenticationSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +31,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
@@ -44,6 +48,10 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
