@@ -25,7 +25,6 @@ public class UserProviderService {
                 .providerUsername(username)
                 .providerUserId(providerUserId)
                 .providerEmail(email)
-                .lastUsedAt(Instant.now())
                 .build();
     }
 }
