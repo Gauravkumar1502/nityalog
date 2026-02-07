@@ -1,7 +1,6 @@
 package dev.gaurav.nityalog.configs;
 
 import dev.gaurav.nityalog.constants.SecurityConstants;
-import dev.gaurav.nityalog.properties.CorsProperties;
 import dev.gaurav.nityalog.security.filters.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -15,15 +14,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -38,7 +30,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
@@ -60,29 +51,6 @@ public class SecurityConfig {
                         })
                 );
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration cors = new CorsConfiguration();
-        cors.setAllowedOriginPatterns(corsProperties.allowedOrigins());
-        cors.setAllowedMethods(corsProperties.allowedMethods());
-        cors.setAllowedHeaders(corsProperties.allowedHeaders());
-        // Only expose headers if configured
-        List<String> exposedHeaders = corsProperties.exposedHeaders();
-        if (exposedHeaders != null && !exposedHeaders.isEmpty()) {
-            cors.setExposedHeaders(exposedHeaders);
-        }
-        cors.setAllowCredentials(corsProperties.allowCredentials());
-        cors.setMaxAge(corsProperties.maxAge());
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cors);
-        return source;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
