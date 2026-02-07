@@ -226,13 +226,17 @@ public class OtpService {
                 UserProvider userProvider = userProviderService.buildProvider(
                         newUser,
                         providerType,
-                        user.getUsername(),
-                        user.getId().toString(),
-                        user.getEmail());
+                        newUser.getUsername(),
+                        newUser.getId().toString(),
+                        newUser.getEmail());
+                user.getSecurity().setLastLogin(Instant.now());
                 newUser.addProvider(userProvider);
                 yield buildAuthResponse(userService.save(newUser));
             }
-            case LOGIN, MFA -> buildAuthResponse(user);
+            case LOGIN, MFA -> {
+                user.getSecurity().setLastLogin(Instant.now());
+                yield buildAuthResponse(user);
+            }
             case RESET_PASSWORD -> OtpVerificationResponse.success();
         };
     }
