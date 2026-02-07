@@ -8,9 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public enum ProviderType {
-    EMAIL("email", "Email", 0),
-    PHONE("phone", "Phone", 1),
-    GOOGLE("google", "Google", 2);
+    EMAIL("email", null, "Email", 0),
+    PHONE("phone", null,"Phone", 1),
+    GOOGLE("google", "sub", "Google", 2);
     // For Future Use
 //    GITHUB("github", "GitHub", 2),
 //    FACEBOOK("facebook", "Facebook", 3),
@@ -19,6 +19,7 @@ public enum ProviderType {
 //    LINKEDIN("linkedin", "LinkedIn", 6);
 
     private final String registrationId;
+    private final String providerUserIdKey;
     private final String displayName;
     private final int code;
 
