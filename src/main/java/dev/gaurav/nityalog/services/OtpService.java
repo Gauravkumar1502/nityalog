@@ -32,7 +32,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional
 public class OtpService {
-    private final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     private final OtpRepository otpRepository;
     private final SecureRandom RANDOM = new SecureRandom();
@@ -43,6 +42,7 @@ public class OtpService {
 
     public String generateOtpCode(int length) {
         StringBuilder sb = new StringBuilder(length);
+        String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         for (int i = 0; i < length; i++) {
             int index = RANDOM.nextInt(ALPHANUMERIC.length());
             sb.append(ALPHANUMERIC.charAt(index));
