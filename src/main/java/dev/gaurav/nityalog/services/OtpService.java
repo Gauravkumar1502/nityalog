@@ -230,7 +230,7 @@ public class OtpService {
                         .providerUsername(newUser.getUsername())
                         .providerEmail(newUser.getEmail())
                         .build();
-                user.getSecurity().setLastLogin(Instant.now());
+                newUser.getSecurity().setLastLogin(Instant.now());
                 userProvider.setLastUsedAt(Instant.now());
                 newUser.addProvider(userProvider);
                 yield buildAuthResponse(userService.save(newUser));
