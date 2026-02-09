@@ -2,19 +2,11 @@ FROM gradle:8.5-jdk17 AS build
 
 WORKDIR /app
 
-# Copy only gradle config first (better caching)
-COPY build.gradle.kts settings.gradle.kts gradlew ./
-COPY gradle ./gradle
+COPY . .
 
 RUN chmod +x gradlew
 
-# Download dependencies first (cache layer)
-RUN ./gradlew dependencies --no-daemon
-
-# Copy source code
-COPY src ./src
-
-# Build jar
+# Build Spring Boot jar
 RUN ./gradlew clean bootJar -x test --no-daemon
 
 
