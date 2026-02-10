@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
-@ConfigurationProperties(prefix = "server")
+@ConfigurationProperties(prefix = "app.server")
 public record ServerProperties(
         @NotBlank(message = "Server scheme must not be blank")
         String scheme,
