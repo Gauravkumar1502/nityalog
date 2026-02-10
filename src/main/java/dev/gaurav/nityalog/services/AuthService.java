@@ -128,10 +128,10 @@ public class AuthService {
                 .build();
         otpService.save(otp);
 
-        mailService.sendOtpEmail(
+        mailService.sendRegistrationEmail(
                 user != null ? user.getEmail() : target,
                 rawOtp,
-                otpType
+                otpType.getExpiresIn()
         );
 
         return OtpDispatchResponse.builder()
