@@ -2,11 +2,22 @@ FROM gradle:9.3.1-jdk25 AS build
 
 WORKDIR /app
 
-COPY . .
+# Copy only gradle wrapper + build scripts first (for caching deps)
+COPY gradlew gradlew
+COPY gradle gradle
+COPY build.gradle.kts settings.gradle.kts ./
 
 RUN chmod +x gradlew
 
-RUN ./gradlew clean bootJar -x test --no-daemon --stacktrace --info
+# Download dependencies (cached layer unless gradle files change)
+RUN ./gradlew dependencies --no-daemon
+
+# Copy source code after deps are cached
+COPY src src
+
+# Build jar
+RUN ./gradlew clean bootJar -x test --no-daemon
+
 
 FROM eclipse-temurin:25-jdk
 
