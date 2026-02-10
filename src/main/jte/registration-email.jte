@@ -1,5 +1,5 @@
 @param String verificationCode
-@param String expireInMinutes
+@param Long expireInMinutes
 
 <!DOCTYPE html>
 <html lang="en">
