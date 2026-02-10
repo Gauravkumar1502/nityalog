@@ -16,4 +16,6 @@ COPY --from=build /app/build/libs/*.jar app.jar
 
 EXPOSE 8080
 
+ENV JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true"
+
 CMD ["java", "-jar", "app.jar"]
