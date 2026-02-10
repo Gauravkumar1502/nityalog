@@ -66,6 +66,7 @@ public class User extends BaseEntity implements UserDetails {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true, optional = false)
     private UserProfile profile;
 
+    @Builder.Default
     @OneToMany(mappedBy = "requestedBy", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Friendship> sentFriendRequests = new HashSet<>();
 

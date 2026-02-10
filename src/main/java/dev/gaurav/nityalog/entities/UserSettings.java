@@ -32,13 +32,16 @@ public class UserSettings extends AuditableEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     @Column(name = "theme", length = 20, nullable = false)
     private Theme theme = Theme.SYSTEM;
 
+    @Builder.Default
     @Convert(converter = LocaleConverter.class)
     @Column(name = "locale", length = 10, nullable = false)
     private Locale locale = Locale.forLanguageTag("en-IN");
 
+    @Builder.Default
     @Column(name = "timezone", length = 50, nullable = false)
     private ZoneId timezone = ZoneId.of("UTC");
 
